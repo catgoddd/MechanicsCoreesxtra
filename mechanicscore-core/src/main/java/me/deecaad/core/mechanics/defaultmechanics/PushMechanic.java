@@ -13,7 +13,7 @@ import org.jetbrains.annotations.Nullable;
 public class PushMechanic extends Mechanic {
 
     private double speed;
-    private double verticalMultiplier;
+    private double verticalVelocity; // static upward velocity
 
     /**
      * Default constructor for serializer.
@@ -21,17 +21,17 @@ public class PushMechanic extends Mechanic {
     public PushMechanic() {
     }
 
-    public PushMechanic(double speed, double verticalMultiplier) {
+    public PushMechanic(double speed, double verticalVelocity) {
         this.speed = speed;
-        this.verticalMultiplier = verticalMultiplier;
+        this.verticalVelocity = verticalVelocity;
     }
 
     public double getSpeed() {
         return speed;
     }
 
-    public double getVerticalMultiplier() {
-        return verticalMultiplier;
+    public double getVerticalVelocity() {
+        return verticalVelocity;
     }
 
     @Override
@@ -41,15 +41,21 @@ public class PushMechanic extends Mechanic {
         if (cast.getTarget() == null)
             return;
 
+        // Get horizontal direction vector only (ignore Y)
         Vector velocity = cast.getTargetLocation().subtract(cast.getSourceLocation()).toVector();
+        velocity.setY(0);
 
-        // When the target location is the same as the source location, we get
-        // an empty vector.
+        // If direction is zero, do nothing
         if (VectorUtil.isZero(velocity))
             return;
 
-        velocity.setY(velocity.getY() * verticalMultiplier);
+        // Normalize horizontal vector and multiply by speed
         velocity.normalize().multiply(speed);
+
+        // Set static upward velocity
+        velocity.setY(verticalVelocity);
+
+        // Apply to entity
         cast.getTarget().setVelocity(velocity);
     }
 
@@ -66,8 +72,8 @@ public class PushMechanic extends Mechanic {
     @NotNull @Override
     public Mechanic serialize(@NotNull SerializeData data) throws SerializerException {
         double speed = data.of("Speed").assertExists().getDouble().getAsDouble();
-        double verticalMultiplier = data.of("Vertical_Multiplier").getDouble().orElse(1.0);
+        double verticalVelocity = data.of("Vertical_Velocity").getDouble().orElse(0.5); // default Y velocity
 
-        return applyParentArgs(data, new PushMechanic(speed, verticalMultiplier));
+        return applyParentArgs(data, new PushMechanic(speed, verticalVelocity));
     }
 }
